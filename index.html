@@ -120,16 +120,53 @@
     #slideshowBtn:hover {
       background: rgba(255, 255, 255, 1);
     }
+    #testSlideshowBtn {
+      position: absolute;
+      bottom: 140px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.85);
+      border: none;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: 'Courier New', monospace;
+      cursor: pointer;
+      box-shadow: 0 0 8px #fff;
+      transition: all 0.2s ease;
+    }
+    #testSlideshowBtn:hover {
+      background: rgba(255, 255, 255, 1);
+    }
+    #goToCatImagesBtn {
+      position: absolute;
+      bottom: 200px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.85);
+      border: none;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: 'Courier New', monospace;
+      cursor: pointer;
+      box-shadow: 0 0 8px #fff;
+      transition: all 0.2s ease;
+    }
+    #goToCatImagesBtn:hover {
+      background: rgba(255, 255, 255, 1);
+    }
   </style>
 </head>
 <body>
   <canvas id="universe"></canvas>
   <div id="popup"></div>
+  <div id="slideshowStatus" style="position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.7); color: white; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 12px; opacity: 0; transition: opacity 0.3s ease;">Slideshow: Loading...</div>
   <button id="centerBtn" title="Return to the center">💌</button>
   <button id="galaxyBtn" title="Fly to the Distant Galaxy">🌀</button>
   <button id="revealNameBtn" title="Reveal the name">❤️</button>
   <button id="catBtn" title="Fly to the Cat">🐱</button>
   <button id="slideshowBtn" title="Toggle cat slideshow">⏸️</button>
+  <button id="testSlideshowBtn" title="Test slideshow manually">🔄</button>
+  <button id="goToCatImagesBtn" title="Go to Cat Images Location">📍</button>
 
   <audio id="bg-music" autoplay loop>
     <source src="space-ambient-351305.mp3" type="audio/mpeg">
@@ -567,11 +604,20 @@
     const loader = new THREE.TextureLoader();
 
     catImageFiles.forEach((file, index) => {
+      console.log(`Loading image ${index + 1}/${catImageFiles.length}: ${file}`);
       const texture = loader.load(
         file,
         // Success callback
         (loadedTexture) => {
           console.log(`Successfully loaded: ${file}`);
+          // Update status when all images are loaded
+          if (catImages.length === catImageFiles.length) {
+            const status = document.getElementById('slideshowStatus');
+            if (status) {
+              status.textContent = `Images loaded: ${catImages.length}/${catImageFiles.length}`;
+              status.style.opacity = '1';
+            }
+          }
         },
         // Progress callback
         undefined,
@@ -586,6 +632,7 @@
       mesh.visible = index === 0; // Only the first image is visible initially
       catImages.push(mesh);
       scene.add(mesh);
+      console.log(`Added image ${file} to scene at position:`, catImagePosition);
     });
 
     const catHitTargetGeometry = new THREE.PlaneGeometry(1000, 1000, 1);
@@ -599,7 +646,22 @@
     function startSlideshow() {
       if (slideshowInterval) clearInterval(slideshowInterval);
       console.log(`Starting cat slideshow with ${catImages.length} images, changing every 5 seconds`);
+      
+      // Make sure all images are loaded before starting
+      if (catImages.length === 0) {
+        console.error('No cat images loaded yet!');
+        return;
+      }
+      
+      // Show status
+      const status = document.getElementById('slideshowStatus');
+      if (status) {
+        status.style.opacity = '1';
+        status.textContent = `Slideshow: Image ${currentCatImageIndex + 1}/${catImages.length}`;
+      }
+      
       slideshowInterval = setInterval(() => {
+        console.log(`Changing from image ${currentCatImageIndex + 1} to next...`);
         catImages[currentCatImageIndex].visible = false;
         currentCatImageIndex = (currentCatImageIndex + 1) % catImages.length;
         catImages[currentCatImageIndex].visible = true;
@@ -610,6 +672,14 @@
         if (button) {
           button.innerHTML = `${currentCatImageIndex + 1}/${catImages.length}`;
         }
+        
+        // Update status
+        if (status) {
+          status.textContent = `Slideshow: Image ${currentCatImageIndex + 1}/${catImages.length}`;
+        }
+        
+        // Force render update
+        renderer.render(scene, camera);
       }, 5000); // Change image every 5 seconds
       
       // Set initial button text
@@ -617,6 +687,8 @@
       if (button) {
         button.innerHTML = `${currentCatImageIndex + 1}/${catImages.length}`;
       }
+      
+      console.log('Slideshow started successfully!');
     }
 
     function stopSlideshow() {
@@ -627,6 +699,12 @@
       const button = document.getElementById('slideshowBtn');
       if (button) {
         button.innerHTML = '▶️';
+      }
+      
+      // Hide status
+      const status = document.getElementById('slideshowStatus');
+      if (status) {
+        status.style.opacity = '0';
       }
     }
     
@@ -828,6 +906,72 @@
         button.innerHTML = '▶️';
         button.title = 'Play cat slideshow';
       }
+    });
+    
+    document.getElementById('testSlideshowBtn').addEventListener('click', () => {
+      console.log('Manual test of slideshow...');
+      if (catImages.length > 0) {
+        console.log(`Current image index: ${currentCatImageIndex}`);
+        console.log(`Current image visible: ${catImages[currentCatImageIndex].visible}`);
+        console.log(`Total images: ${catImages.length}`);
+        
+        // Manually switch to next image
+        catImages[currentCatImageIndex].visible = false;
+        currentCatImageIndex = (currentCatImageIndex + 1) % catImages.length;
+        catImages[currentCatImageIndex].visible = true;
+        console.log(`Manually switched to image ${currentCatImageIndex + 1}: ${catImageFiles[currentCatImageIndex]}`);
+        
+        // Update button text
+        const button = document.getElementById('slideshowBtn');
+        if (button) {
+          button.innerHTML = `${currentCatImageIndex + 1}/${catImages.length}`;
+        }
+        
+        // Force render
+        renderer.render(scene, camera);
+      } else {
+        console.error('No cat images available!');
+      }
+      
+      // Also show camera and cat image positions
+      console.log('Camera position:', camera.position);
+      console.log('Cat image position:', camera.position.distanceTo(catImagePosition));
+    });
+    
+    document.getElementById('goToCatImagesBtn').addEventListener('click', () => {
+      console.log('Flying to cat images location...');
+      const target = catImagePosition.clone();
+      const offsetDirection = new THREE.Vector3(0, 0, 1).normalize();
+      const offsetDistance = 2000; // Closer view
+      const destination = target.clone().add(offsetDirection.multiplyScalar(offsetDistance));
+      const startPos = camera.position.clone();
+      const startTarget = controls.target.clone();
+      let progress = 0;
+      const duration = 100;
+
+      function animateCatImageZoom() {
+        if (progress < 1) {
+          progress += 1 / duration;
+          const ease = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
+          camera.position.lerpVectors(startPos, destination, ease);
+          controls.target.lerpVectors(startTarget, target, ease);
+          controls.update();
+          if (progress >= 1) {
+            camera.position.copy(destination);
+            controls.target.copy(target);
+            camera.up.set(0, 1, 0);
+            camera.lookAt(target);
+            controls.update();
+            console.log('Arrived at cat images location!');
+            console.log('Camera position:', camera.position);
+            console.log('Cat image position:', catImagePosition);
+            console.log('Distance to cat images:', camera.position.distanceTo(catImagePosition));
+          } else {
+            requestAnimationFrame(animateCatImageZoom);
+          }
+        }
+      }
+      animateCatImageZoom();
     });
     
     function triggerBubbleEffect() {
@@ -1034,8 +1178,11 @@
     }, { once: true });
     animate();
     
-    // Start the cat slideshow immediately when the page loads
-    startSlideshow();
+    // Start the cat slideshow after a short delay to ensure images are loaded
+    setTimeout(() => {
+      console.log('Attempting to start slideshow...');
+      startSlideshow();
+    }, 2000);
 
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
